@@ -20,7 +20,7 @@ cc_library(
     hdrs = ["smtp.h"],
     deps = [
         "@status_macros//:status_macros",
-		"@boost//:asio",
+        "@boost//:asio",
         "@boost//:asio_ssl",
         "@boost//:serialization",
         "@com_google_absl//absl/status",

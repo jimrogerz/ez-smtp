@@ -52,7 +52,7 @@ public:
   virtual void EnableLogging() = 0;
 };
 
-/** Concrete implementation of SocketAdapter. */
+/** Concrete implementation of SmtpAdapter. */
 class SmtpAdapterImpl : public SmtpAdapter {
 public:
   typedef boost::asio::ssl::stream<boost::asio::ip::tcp::socket> SslSocket;
