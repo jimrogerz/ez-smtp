@@ -1,6 +1,6 @@
-# ez-smtp
+# EZ-SMTP
 
-An SMTP library built with [bazel](https://bazel.build/).
+A C++ SMTP library built with [bazel](https://bazel.build/).
 
 ## Setup
 
