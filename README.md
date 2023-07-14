@@ -68,7 +68,22 @@ absl::Status SendBatch(Smtp &smtp) {
                       .SetBody("This is the second example")
                       .SendBatch());
   return smtp.Disconnect();
+}
 ```
 
-The above example uses [status macros](https://github.com/jimrogerz/status_macros) to reduce boilerplate from
+See [status macros](https://github.com/jimrogerz/status_macros) to reduce boilerplate from
 [Abseil status](https://abseil.io/docs/cpp/guides/status).
+
+## Contributing
+
+Follow the [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html). Update unit tests and confirm passing:
+
+```
+bazel test :smtp_test
+```
+
+Format the code:
+
+```
+clang-format -i *.cc *.h
+```

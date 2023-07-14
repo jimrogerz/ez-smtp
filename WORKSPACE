@@ -1,4 +1,4 @@
-# EZ-SMTP (C) 2023 Jim Rogers.
+# EZ-SMTP Copyright 2023 Jim Rogers (jimrogerz@gmail.com).
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,6 +27,12 @@ http_archive(
   name = "bazel_skylib",
   urls = ["https://github.com/bazelbuild/bazel-skylib/releases/download/1.2.1/bazel-skylib-1.2.1.tar.gz"],
   sha256 = "f7be3474d42aae265405a592bb7da8e171919d74c16f082a5457840f06054728",
+)
+
+http_archive(
+  name = "com_google_googletest",
+  urls = ["https://github.com/google/googletest/archive/5ab508a01f9eb089207ee87fd547d290da39d015.zip"],
+  strip_prefix = "googletest-5ab508a01f9eb089207ee87fd547d290da39d015",
 )
 
 # https://github.com/nelhage/rules_boost and https://www.boost.org

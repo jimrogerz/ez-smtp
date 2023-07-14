@@ -1,4 +1,4 @@
-// EZ-SMTP (C) 2023 Jim Rogers.
+// EZ-SMTP Copyright 2023 Jim Rogers (jimrogerz@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -30,8 +30,8 @@ namespace ez {
 namespace smtp {
 namespace {
 
-void write_recipient(absl::string_view field, absl::string_view address,
-                     absl::string_view name, std::stringstream &output) {
+void WriteRecipient(absl::string_view field, absl::string_view address,
+                    absl::string_view name, std::stringstream &output) {
   output << field << ": " << address;
   if (name.size() > 0) {
     output << " <" << name << ">";
@@ -39,9 +39,9 @@ void write_recipient(absl::string_view field, absl::string_view address,
   output << "\r\n";
 }
 
-void write_recipients(const std::vector<Recipient> recipients,
-                      absl::string_view field, const int recipient_type,
-                      std::stringstream &output) {
+void WriteRecipients(const std::vector<Recipient> recipients,
+                     absl::string_view field, const int recipient_type,
+                     std::stringstream &output) {
   bool started = false;
   for (auto it = recipients.begin(); it != recipients.end(); it++) {
     if (it->recipient_type != recipient_type) {
@@ -61,7 +61,7 @@ void write_recipients(const std::vector<Recipient> recipients,
   }
 }
 
-std::string base64_encode(const std::string &data) {
+std::string Base64Encode(const std::string &data) {
   using namespace boost::archive::iterators;
   typedef base64_from_binary<transform_width<const char *, 6, 8>> base64_text;
   std::string result;
@@ -69,13 +69,15 @@ std::string base64_encode(const std::string &data) {
   std::copy(base64_text(data.c_str()), base64_text(data.c_str() + data.size()),
             std::back_inserter(result));
   std::string::size_type data_size = data.size();
-  while (data_size % 3 != 0)
-    (result += '='), (++data_size);
+  while (data_size % 3 != 0) {
+    result += '=';
+    data_size++;
+  }
   return result;
 }
 
-absl::Status authorize(SmtpAdapter &adapter, absl::string_view username,
-                       absl::string_view password) {
+absl::Status StartTls(SmtpAdapter &adapter, absl::string_view username,
+                      absl::string_view password) {
   RETURN_IF_ERROR(adapter.Read(220));
   RETURN_IF_ERROR(adapter.WriteLine("STARTTLS"));
   RETURN_IF_ERROR(adapter.Read(220));
@@ -84,24 +86,24 @@ absl::Status authorize(SmtpAdapter &adapter, absl::string_view username,
   RETURN_IF_ERROR(adapter.Read(250));
   RETURN_IF_ERROR(adapter.WriteLine("AUTH PLAIN"));
   RETURN_IF_ERROR(adapter.Read(334));
-  std::string auth_hash = base64_encode('\000' + std::string(username) +
-                                        '\000' + std::string(password));
+  std::string auth_hash = Base64Encode('\000' + std::string(username) + '\000' +
+                                       std::string(password));
   RETURN_IF_ERROR(adapter.WriteLine(auth_hash));
   RETURN_IF_ERROR(adapter.Read(235));
   return absl::OkStatus();
 }
 
-absl::Status connect(SmtpAdapter &adapter, absl::string_view username,
+absl::Status Connect(SmtpAdapter &adapter, absl::string_view username,
                      absl::string_view password) {
   RETURN_IF_ERROR(adapter.Connect());
-  auto status = authorize(adapter, username, password);
+  auto status = StartTls(adapter, username, password);
   if (!status.ok()) {
     adapter.Disconnect();
   }
   return status;
 }
 
-absl::Status disconnect(SmtpAdapter &adapter) {
+absl::Status Quit(SmtpAdapter &adapter) {
   auto status = adapter.WriteLine("QUIT");
   if (status.ok()) {
     status = adapter.Read(221);
@@ -170,13 +172,13 @@ absl::Status SmtpAdapterImpl::WriteLine(absl::string_view message) {
 }
 
 absl::Status BuilderImpl::Send() {
-  RETURN_IF_ERROR(connect(adapter_, username_, password_));
+  RETURN_IF_ERROR(Connect(adapter_, username_, password_));
   auto status = SendBatch();
   if (!status.ok()) {
     adapter_.Disconnect();
     return status;
   }
-  return disconnect(adapter_);
+  return Quit(adapter_);
 }
 
 absl::Status BuilderImpl::SendBatch() {
@@ -191,10 +193,10 @@ absl::Status BuilderImpl::SendBatch() {
   RETURN_IF_ERROR(adapter_.WriteLine("DATA"));
   RETURN_IF_ERROR(adapter_.Read(354));
   std::stringstream data;
-  write_recipient("From", sender_.address, sender_.name, data);
-  write_recipients(recipients_, "To", Primary, data);
-  write_recipients(recipients_, "Cc", CarbonCopy, data);
-  write_recipients(recipients_, "Bcc", Blind, data);
+  WriteRecipient("From", sender_.address, sender_.name, data);
+  WriteRecipients(recipients_, "To", Primary, data);
+  WriteRecipients(recipients_, "Cc", CarbonCopy, data);
+  WriteRecipients(recipients_, "Bcc", Blind, data);
   if (content_type_ != "") {
     data << "MIME-Version: 1.0\r\n";
     data << "Content-Type: " << content_type_ << "\r\n";
@@ -206,9 +208,11 @@ absl::Status BuilderImpl::SendBatch() {
   return absl::OkStatus();
 }
 
-absl::Status Smtp::Connect() { return connect(adapter_, username_, password_); }
+absl::Status Smtp::Connect() {
+  return ez::smtp::Connect(adapter_, username_, password_);
+}
 
-absl::Status Smtp::Disconnect() { return disconnect(adapter_); }
+absl::Status Smtp::Disconnect() { return Quit(adapter_); }
 
 } // namespace smtp
 } // namespace ez
