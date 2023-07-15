@@ -12,24 +12,23 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 
 git_repository(
     name = "ez-smtp",
-    commit = "ba8316a07559cb7deca40c307bf3cd571eb62d29",
+    commit = "78b23f01ab36da2bcd1f20d4d5e3639d95bb77fa",
     remote = "https://github.com/jimrogerz/ez-smtp.git",
 )
 ```
 
-Add `"@ez-smtp//:smtp"` to your BUILD deps, then `#include "smtp.h"` to your source.
+Add `"@ez-smtp//:smtp"` to your BUILD deps.
 
 ## Usage
 
-Construct the Smtp class as follows (sendgrid is used as an example, but any SMTP server should work):
+Sending a single email:
 
 ```
+#include "smtp.h"
+
+// May reuse this instance
 Smtp smtp("smtp.sendgrid.net", /* port= */ 587, "username", "password", adapter);
-```
 
-Send an email like this:
-
-```
 auto status = smtp.NewEmail()
                   .SetSender("someone@gmail.com")
                   .AddRecipient("someone@gmail.com")
