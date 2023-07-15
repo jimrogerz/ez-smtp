@@ -24,13 +24,10 @@ Add `"@ez-smtp//:smtp"` to your BUILD deps, then `#include "smtp.h"` to your sou
 Construct the Smtp class as follows (sendgrid is used as an example, but any SMTP server should work):
 
 ```
-std::string smtp_host = "smtp.sendgrid.net";
-int smtp_port = 587;
-SmtpAdapterImpl adapter(smtp_host, smtp_port);
-Smtp smtp("username", "password", adapter);
+Smtp smtp("smtp.sendgrid.net", /* port= */ 587, "username", "password", adapter);
 ```
 
-Now you can send an email like this:
+Send an email like this:
 
 ```
 auto status = smtp.NewEmail()

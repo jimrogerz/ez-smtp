@@ -209,10 +209,10 @@ absl::Status BuilderImpl::SendBatch() {
 }
 
 absl::Status Smtp::Connect() {
-  return ez::smtp::Connect(adapter_, username_, password_);
+  return ez::smtp::Connect(*adapter_, username_, password_);
 }
 
-absl::Status Smtp::Disconnect() { return Quit(adapter_); }
+absl::Status Smtp::Disconnect() { return Quit(*adapter_); }
 
 } // namespace smtp
 } // namespace ez

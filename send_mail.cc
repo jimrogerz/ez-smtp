@@ -69,10 +69,9 @@ absl::Status SendBatch(Smtp &smtp) {
 int main(int argc, char **argv) {
   absl::ParseCommandLine(argc, argv);
 
-  SmtpAdapterImpl adapter(absl::GetFlag(FLAGS_smtp_server),
-                          absl::GetFlag(FLAGS_smtp_port));
-  Smtp smtp(absl::GetFlag(FLAGS_smtp_username),
-            absl::GetFlag(FLAGS_smtp_password), adapter);
+  Smtp smtp(absl::GetFlag(FLAGS_smtp_server), absl::GetFlag(FLAGS_smtp_port),
+            absl::GetFlag(FLAGS_smtp_username),
+            absl::GetFlag(FLAGS_smtp_password));
   smtp.EnableLogging();
 
   auto status = absl::GetFlag(FLAGS_batch) ? SendBatch(smtp) : SendSingle(smtp);

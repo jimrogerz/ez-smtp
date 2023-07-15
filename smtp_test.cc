@@ -37,76 +37,71 @@ public:
 
 class SmtpTest : public ::testing::Test {
 public:
-  SmtpTest() : smtp_("username", "password", mock_adapter_) {}
+  SmtpTest()
+      : mock_adapter_(std::make_shared<MockSmtpAdapter>()),
+        smtp_("username", "password", mock_adapter_) {}
 
 protected:
-  MockSmtpAdapter mock_adapter_;
+  MockSmtpAdapter &adapter() { return *mock_adapter_; }
+  std::shared_ptr<MockSmtpAdapter> mock_adapter_;
   Smtp smtp_;
 };
 
 TEST_F(SmtpTest, SendSingleEmail) {
-  EXPECT_CALL(mock_adapter_, Connect()).Times(1);
-  EXPECT_CALL(mock_adapter_, Read(220))
+  EXPECT_CALL(adapter(), Connect()).Times(1);
+  EXPECT_CALL(adapter(), Read(220))
       .Times(2)
       .WillRepeatedly(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("STARTTLS"))
+  EXPECT_CALL(adapter(), WriteLine("STARTTLS"))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, EnableTls())
+  EXPECT_CALL(adapter(), EnableTls())
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, Hostname()).Times(1).WillOnce(Return("TestHost"));
-  EXPECT_CALL(mock_adapter_, WriteLine("HELO TestHost"))
+  EXPECT_CALL(adapter(), Hostname()).Times(1).WillOnce(Return("TestHost"));
+  EXPECT_CALL(adapter(), WriteLine("HELO TestHost"))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, Read(250))
+  EXPECT_CALL(adapter(), Read(250))
       .Times(6)
       .WillRepeatedly(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("AUTH PLAIN"))
+  EXPECT_CALL(adapter(), WriteLine("AUTH PLAIN"))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, Read(334))
+  EXPECT_CALL(adapter(), Read(334)).Times(1).WillOnce(Return(absl::OkStatus()));
+  EXPECT_CALL(adapter(), WriteLine("AHVzZXJuYW1lAHBhc3N3b3Jk"))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("AHVzZXJuYW1lAHBhc3N3b3Jk"))
+  EXPECT_CALL(adapter(), Read(235)).Times(1).WillOnce(Return(absl::OkStatus()));
+  EXPECT_CALL(adapter(), WriteLine("MAIL FROM: <from@example.com>"))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, Read(235))
+  EXPECT_CALL(adapter(), WriteLine("RCPT TO: <to@example.com>"))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("MAIL FROM: <from@example.com>"))
+  EXPECT_CALL(adapter(), WriteLine("RCPT TO: <cc@example.com>"))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("RCPT TO: <to@example.com>"))
+  EXPECT_CALL(adapter(), WriteLine("RCPT TO: <bcc@example.com>"))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("RCPT TO: <cc@example.com>"))
+  EXPECT_CALL(adapter(), WriteLine("DATA"))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("RCPT TO: <bcc@example.com>"))
+  EXPECT_CALL(adapter(), Read(354)).Times(1).WillOnce(Return(absl::OkStatus()));
+  EXPECT_CALL(adapter(), WriteLine("From: from@example.com\r\n"
+                                   "To: to@example.com\r\n"
+                                   "Cc: joe smith <cc@example.com>\r\n"
+                                   "Bcc: jane smith <bcc@example.com>\r\n"
+                                   "Subject: Subject\r\n\r\n"
+                                   "This is the body.\r\n."))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("DATA"))
+  EXPECT_CALL(adapter(), WriteLine("QUIT"))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, Read(354))
-      .Times(1)
-      .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("From: from@example.com\r\n"
-                                       "To: to@example.com\r\n"
-                                       "Cc: joe smith <cc@example.com>\r\n"
-                                       "Bcc: jane smith <bcc@example.com>\r\n"
-                                       "Subject: Subject\r\n\r\n"
-                                       "This is the body.\r\n."))
-      .Times(1)
-      .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("QUIT"))
-      .Times(1)
-      .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, Read(221))
-      .Times(1)
-      .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, Disconnect()).Times(1).WillOnce(Return());
+  EXPECT_CALL(adapter(), Read(221)).Times(1).WillOnce(Return(absl::OkStatus()));
+  EXPECT_CALL(adapter(), Disconnect()).Times(1).WillOnce(Return());
 
   auto status = smtp_.NewEmail()
                     .SetSender("from@example.com")
@@ -121,88 +116,82 @@ TEST_F(SmtpTest, SendSingleEmail) {
 }
 
 TEST_F(SmtpTest, SendMultipleEmails) {
-  EXPECT_CALL(mock_adapter_, Connect()).Times(1);
-  EXPECT_CALL(mock_adapter_, Read(220))
+  EXPECT_CALL(adapter(), Connect()).Times(1);
+  EXPECT_CALL(adapter(), Read(220))
       .Times(2)
       .WillRepeatedly(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("STARTTLS"))
+  EXPECT_CALL(adapter(), WriteLine("STARTTLS"))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, EnableTls())
+  EXPECT_CALL(adapter(), EnableTls())
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, Hostname()).Times(1).WillOnce(Return("TestHost"));
-  EXPECT_CALL(mock_adapter_, WriteLine("HELO TestHost"))
+  EXPECT_CALL(adapter(), Hostname()).Times(1).WillOnce(Return("TestHost"));
+  EXPECT_CALL(adapter(), WriteLine("HELO TestHost"))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, Read(250))
+  EXPECT_CALL(adapter(), Read(250))
       .Times(11)
       .WillRepeatedly(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("AUTH PLAIN"))
+  EXPECT_CALL(adapter(), WriteLine("AUTH PLAIN"))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, Read(334))
+  EXPECT_CALL(adapter(), Read(334)).Times(1).WillOnce(Return(absl::OkStatus()));
+  EXPECT_CALL(adapter(), WriteLine("AHVzZXJuYW1lAHBhc3N3b3Jk"))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("AHVzZXJuYW1lAHBhc3N3b3Jk"))
+  EXPECT_CALL(adapter(), Read(235)).Times(1).WillOnce(Return(absl::OkStatus()));
+  EXPECT_CALL(adapter(), WriteLine("MAIL FROM: <from@example.com>"))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, Read(235))
+  EXPECT_CALL(adapter(), WriteLine("RCPT TO: <to@example.com>"))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("MAIL FROM: <from@example.com>"))
+  EXPECT_CALL(adapter(), WriteLine("RCPT TO: <cc@example.com>"))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("RCPT TO: <to@example.com>"))
+  EXPECT_CALL(adapter(), WriteLine("RCPT TO: <bcc@example.com>"))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("RCPT TO: <cc@example.com>"))
+  EXPECT_CALL(adapter(), WriteLine("MAIL FROM: <from2@example.com>"))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("RCPT TO: <bcc@example.com>"))
+  EXPECT_CALL(adapter(), WriteLine("RCPT TO: <to2@example.com>"))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("MAIL FROM: <from2@example.com>"))
+  EXPECT_CALL(adapter(), WriteLine("RCPT TO: <cc2@example.com>"))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("RCPT TO: <to2@example.com>"))
+  EXPECT_CALL(adapter(), WriteLine("RCPT TO: <bcc2@example.com>"))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("RCPT TO: <cc2@example.com>"))
-      .Times(1)
-      .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("RCPT TO: <bcc2@example.com>"))
-      .Times(1)
-      .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("DATA"))
+  EXPECT_CALL(adapter(), WriteLine("DATA"))
       .Times(2)
       .WillRepeatedly(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, Read(354))
+  EXPECT_CALL(adapter(), Read(354))
       .Times(2)
       .WillRepeatedly(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("From: from@example.com\r\n"
-                                       "To: to@example.com\r\n"
-                                       "Cc: joe smith <cc@example.com>\r\n"
-                                       "Bcc: jane smith <bcc@example.com>\r\n"
-                                       "Subject: 1st subject\r\n\r\n"
-                                       "This is the first body.\r\n."))
+  EXPECT_CALL(adapter(), WriteLine("From: from@example.com\r\n"
+                                   "To: to@example.com\r\n"
+                                   "Cc: joe smith <cc@example.com>\r\n"
+                                   "Bcc: jane smith <bcc@example.com>\r\n"
+                                   "Subject: 1st subject\r\n\r\n"
+                                   "This is the first body.\r\n."))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("From: from2@example.com\r\n"
-                                       "To: to2@example.com\r\n"
-                                       "Cc: joe smith <cc2@example.com>\r\n"
-                                       "Bcc: jane smith <bcc2@example.com>\r\n"
-                                       "Subject: 2nd subject\r\n\r\n"
-                                       "This is the second body.\r\n."))
+  EXPECT_CALL(adapter(), WriteLine("From: from2@example.com\r\n"
+                                   "To: to2@example.com\r\n"
+                                   "Cc: joe smith <cc2@example.com>\r\n"
+                                   "Bcc: jane smith <bcc2@example.com>\r\n"
+                                   "Subject: 2nd subject\r\n\r\n"
+                                   "This is the second body.\r\n."))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("QUIT"))
+  EXPECT_CALL(adapter(), WriteLine("QUIT"))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, Read(221))
-      .Times(1)
-      .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, Disconnect()).Times(1).WillOnce(Return());
+  EXPECT_CALL(adapter(), Read(221)).Times(1).WillOnce(Return(absl::OkStatus()));
+  EXPECT_CALL(adapter(), Disconnect()).Times(1).WillOnce(Return());
 
   ASSERT_TRUE(smtp_.Connect().ok());
 
@@ -230,74 +219,68 @@ TEST_F(SmtpTest, SendMultipleEmails) {
 }
 
 TEST_F(SmtpTest, NewEmailResetsState) {
-  EXPECT_CALL(mock_adapter_, Connect()).Times(1);
-  EXPECT_CALL(mock_adapter_, Read(220))
+  EXPECT_CALL(adapter(), Connect()).Times(1);
+  EXPECT_CALL(adapter(), Read(220))
       .Times(2)
       .WillRepeatedly(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("STARTTLS"))
+  EXPECT_CALL(adapter(), WriteLine("STARTTLS"))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, EnableTls())
+  EXPECT_CALL(adapter(), EnableTls())
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, Hostname()).Times(1).WillOnce(Return("TestHost"));
-  EXPECT_CALL(mock_adapter_, WriteLine("HELO TestHost"))
+  EXPECT_CALL(adapter(), Hostname()).Times(1).WillOnce(Return("TestHost"));
+  EXPECT_CALL(adapter(), WriteLine("HELO TestHost"))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, Read(250))
+  EXPECT_CALL(adapter(), Read(250))
       .Times(8)
       .WillRepeatedly(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("AUTH PLAIN"))
+  EXPECT_CALL(adapter(), WriteLine("AUTH PLAIN"))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, Read(334))
+  EXPECT_CALL(adapter(), Read(334)).Times(1).WillOnce(Return(absl::OkStatus()));
+  EXPECT_CALL(adapter(), WriteLine("AHVzZXJuYW1lAHBhc3N3b3Jk"))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("AHVzZXJuYW1lAHBhc3N3b3Jk"))
+  EXPECT_CALL(adapter(), Read(235)).Times(1).WillOnce(Return(absl::OkStatus()));
+  EXPECT_CALL(adapter(), WriteLine("MAIL FROM: <from@example.com>"))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, Read(235))
+  EXPECT_CALL(adapter(), WriteLine("RCPT TO: <to@example.com>"))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("MAIL FROM: <from@example.com>"))
+  EXPECT_CALL(adapter(), WriteLine("RCPT TO: <cc@example.com>"))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("RCPT TO: <to@example.com>"))
+  EXPECT_CALL(adapter(), WriteLine("RCPT TO: <bcc@example.com>"))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("RCPT TO: <cc@example.com>"))
+  EXPECT_CALL(adapter(), WriteLine("MAIL FROM: <>"))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("RCPT TO: <bcc@example.com>"))
-      .Times(1)
-      .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("MAIL FROM: <>"))
-      .Times(1)
-      .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("DATA"))
+  EXPECT_CALL(adapter(), WriteLine("DATA"))
       .Times(2)
       .WillRepeatedly(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, Read(354))
+  EXPECT_CALL(adapter(), Read(354))
       .Times(2)
       .WillRepeatedly(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("From: from@example.com\r\n"
-                                       "To: to@example.com\r\n"
-                                       "Cc: joe smith <cc@example.com>\r\n"
-                                       "Bcc: jane smith <bcc@example.com>\r\n"
-                                       "Subject: 1st subject\r\n\r\n"
-                                       "This is the first body.\r\n."))
+  EXPECT_CALL(adapter(), WriteLine("From: from@example.com\r\n"
+                                   "To: to@example.com\r\n"
+                                   "Cc: joe smith <cc@example.com>\r\n"
+                                   "Bcc: jane smith <bcc@example.com>\r\n"
+                                   "Subject: 1st subject\r\n\r\n"
+                                   "This is the first body.\r\n."))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("From: \r\nSubject: \r\n\r\n\r\n."))
+  EXPECT_CALL(adapter(), WriteLine("From: \r\nSubject: \r\n\r\n\r\n."))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, WriteLine("QUIT"))
+  EXPECT_CALL(adapter(), WriteLine("QUIT"))
       .Times(1)
       .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, Read(221))
-      .Times(1)
-      .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, Disconnect()).Times(1).WillOnce(Return());
+  EXPECT_CALL(adapter(), Read(221)).Times(1).WillOnce(Return(absl::OkStatus()));
+  EXPECT_CALL(adapter(), Disconnect()).Times(1).WillOnce(Return());
 
   ASSERT_TRUE(smtp_.Connect().ok());
 
@@ -318,13 +301,11 @@ TEST_F(SmtpTest, NewEmailResetsState) {
 }
 
 TEST_F(SmtpTest, SendDisconnectsOnFailure) {
-  EXPECT_CALL(mock_adapter_, Connect())
-      .Times(1)
-      .WillOnce(Return(absl::OkStatus()));
-  EXPECT_CALL(mock_adapter_, Read(220))
+  EXPECT_CALL(adapter(), Connect()).Times(1).WillOnce(Return(absl::OkStatus()));
+  EXPECT_CALL(adapter(), Read(220))
       .Times(1)
       .WillRepeatedly(Return(absl::InternalError("Error")));
-  EXPECT_CALL(mock_adapter_, Disconnect()).Times(1).WillOnce(Return());
+  EXPECT_CALL(adapter(), Disconnect()).Times(1).WillOnce(Return());
 
   auto status = smtp_.NewEmail()
                     .SetSender("from@example.com")

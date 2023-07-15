@@ -210,13 +210,9 @@ private:
 
 /** Sends email(s) using SMTP.
  *
- *  Example construction:
+ *  Example:
  *
- *   SmtpAdapterImpl adapter("smtp.sendgrid.net", 587)
- *   Smtp smtp("username", "password", adapter);
- *
- *  Example usage - sending a single email:
- *
+ *    Smtp smtp("smtp.sendgrid.net", 587, "username", "password");
  *    auto status = smtp.NewEmail()
  *                  .SetSender("someone@gmail.com")
  *                  .AddRecipient("someone@gmail.com")
@@ -254,9 +250,15 @@ private:
 class Smtp {
 public:
   Smtp(absl::string_view username, absl::string_view password,
-       SmtpAdapter &adapter)
+       std::shared_ptr<SmtpAdapter> adapter)
       : username_(std::string(username)), password_(std::string(password)),
-        adapter_(adapter), builder_(adapter_, username_, password) {}
+        adapter_(std::move(adapter)), builder_(*adapter_, username_, password) {
+  }
+
+  Smtp(absl::string_view hostname, const int port, absl::string_view username,
+       absl::string_view password)
+      : Smtp(username, password,
+             std::make_shared<SmtpAdapterImpl>(hostname, port)) {}
 
   /** Returns a Builder that may be used to construct and send an email. */
   Builder &NewEmail() { return builder_.Reset(); }
@@ -271,12 +273,12 @@ public:
 
   /** Enables logging to stdout which will show the SMTP traffic, intended
    * only for debugging. */
-  void EnableLogging() { adapter_.EnableLogging(); }
+  void EnableLogging() { adapter_->EnableLogging(); }
 
 private:
   std::string username_;
   std::string password_;
-  SmtpAdapter &adapter_;
+  std::shared_ptr<SmtpAdapter> adapter_;
   BuilderImpl builder_;
 };
 
