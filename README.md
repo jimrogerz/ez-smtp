@@ -23,7 +23,7 @@ Add `"@ez-smtp//:smtp"` to your BUILD deps.
 
 Sending a single email:
 
-```
+```cpp
 #include "smtp.h"
 
 // May reuse this instance
@@ -48,7 +48,7 @@ emails, however it will connect and disconnect from the receiving server with
 each email. If you need to send multiple emails at once, use the batch APIs
 (Connect, SendBatch, Disconnect), e.g.:
 
-```
+```cpp
 absl::Status SendBatch(Smtp &smtp) {
   RETURN_IF_ERROR(smtp.Connect());
   RETURN_IF_ERROR(smtp.NewEmail()
