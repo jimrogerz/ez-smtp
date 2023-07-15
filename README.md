@@ -27,7 +27,7 @@ Sending a single email:
 #include "smtp.h"
 
 // May reuse this instance
-Smtp smtp("smtp.sendgrid.net", /* port= */ 587, "username", "password", adapter);
+Smtp smtp("hostname", /* port= */ 587, "username", "password");
 
 auto status = smtp.NewEmail()
                   .SetSender("someone@gmail.com")
