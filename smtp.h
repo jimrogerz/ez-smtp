@@ -254,7 +254,7 @@ private:
 class Smtp {
 public:
   Smtp(absl::string_view username, absl::string_view password,
-       SmtpAdapter *adapter)
+       SmtpAdapter &adapter)
       : username_(std::string(username)), password_(std::string(password)),
         adapter_(adapter), builder_(adapter_, username_, password) {}
 
@@ -276,7 +276,7 @@ public:
 private:
   std::string username_;
   std::string password_;
-  SmtpAdapter *adapter_;
+  SmtpAdapter &adapter_;
   BuilderImpl builder_;
 };
 

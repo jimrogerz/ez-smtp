@@ -14,7 +14,7 @@
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
-#include "lib/smtp/smtp.h"
+#include "smtp.h"
 
 ABSL_FLAG(std::string, smtp_server, "", "SMTP server");
 ABSL_FLAG(int, smtp_port, 587, "SMTP port");
