@@ -4,16 +4,28 @@ A C++ SMTP library built with [bazel](https://bazel.build/).
 
 ## Setup
 
-Add the following to your WORKSPACE file:
-
+Add the following build_deps to your MODULE.bazel file:
 
 ```
-load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
+bazel_dep(name = "rules_cc", version = "0.1.0")
+bazel_dep(name = "bazel_skylib", version = "1.7.1")
+bazel_dep(name = "abseil-cpp", version = "20240722.1")
+```
 
-git_repository(
+Add the http_archive rule:
+
+```
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+```
+
+Add the http_archive using the latest commit from https://github.com/jimrogerz/ez-smtp/commits/main/:
+
+```
+EZ_SMTP_COMMIT = "1ea95355f3d7d58949e7b5306b894301c5d6ed8a"
+http_archive(
     name = "ez-smtp",
-    commit = "78b23f01ab36da2bcd1f20d4d5e3639d95bb77fa",
-    remote = "https://github.com/jimrogerz/ez-smtp.git",
+    strip_prefix = "status_macros-" + EZ_SMTP_COMMIT,
+    url = "https://github.com/jimrogerz/ez-smtp/archive/%s.zip" % EZ_SMTP_COMMIT,
 )
 ```
 
