@@ -4,14 +4,6 @@ A C++ SMTP library built with [bazel](https://bazel.build/).
 
 ## Setup
 
-Add the following build_deps to your MODULE.bazel file:
-
-```
-bazel_dep(name = "rules_cc", version = "0.1.0")
-bazel_dep(name = "bazel_skylib", version = "1.7.1")
-bazel_dep(name = "abseil-cpp", version = "20240722.1")
-```
-
 Add the http_archive rule:
 
 ```
@@ -24,7 +16,7 @@ Add the http_archive using the latest commit from https://github.com/jimrogerz/e
 EZ_SMTP_COMMIT = "1ea95355f3d7d58949e7b5306b894301c5d6ed8a"
 http_archive(
     name = "ez-smtp",
-    strip_prefix = "status_macros-" + EZ_SMTP_COMMIT,
+    strip_prefix = "ez-smtp-" + EZ_SMTP_COMMIT,
     url = "https://github.com/jimrogerz/ez-smtp/archive/%s.zip" % EZ_SMTP_COMMIT,
 )
 ```
